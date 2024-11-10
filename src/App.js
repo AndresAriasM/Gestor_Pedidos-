@@ -1,17 +1,28 @@
-// src/App.js
 import React from 'react';
 import { ThemeProvider, CssBaseline, Container } from '@mui/material';
-import theme from './theme';  // Asegúrate de que `theme` esté correctamente exportado desde src/theme/index.js
-import Login from './interfaces/Auth/Login';  // Importa el componente de autenticación como ejemplo
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import theme from './theme';
+import { AuthProvider } from './interfaces/Auth/AuthContext';
+import Login from './interfaces/Auth/Login';
+import VendedorDashboard from './interfaces/Vendedor/VendedorDashboard';  // Crearemos este componente
+import BodegueroDashboard from './interfaces/Bodeguero/BodegueroDashboard';  // Crearemos este componente
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Container component="main" maxWidth="xs">
-        <Login /> {/* Aquí muestras la interfaz de Login o cualquier otro componente */}
-      </Container>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <Container component="main" maxWidth="xs">
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/vendedor" element={<VendedorDashboard />} />
+              <Route path="/bodeguero" element={<BodegueroDashboard />} />
+            </Routes>
+          </Container>
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

@@ -1,15 +1,36 @@
-// src/interfaces/Auth/Login.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Paper, Typography, TextField, Button, Grid } from '@mui/material';
+import { useAuth } from './AuthContext'; // Importa el contexto de autenticación
+import { useNavigate } from 'react-router-dom'; // Usaremos React Router para la redirección
 import loginImage from '../../assets/login_image2.jpeg'; // Asegúrate de que la ruta sea correcta
 
 const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const { login, isAuthenticated, userRole } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+    try {
+      await login(username, password);
+      if (isAuthenticated) {
+        if (userRole === 'vendedor') {
+          navigate('/vendedor'); // Redirigir a la interfaz del vendedor
+        } else if (userRole === 'bodeguero') {
+          navigate('/bodeguero'); // Redirigir a la interfaz del bodeguero
+        }
+      }
+    } catch (error) {
+      console.error('Error en el login:', error);
+    }
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
         minWidth: '100vw',
-        backgroundImage: `url(${loginImage})`,
+        backgroundImage: `url(${loginImage})`, // Imagen de fondo
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -21,7 +42,6 @@ const Login = () => {
         alignItems: 'center',
       }}
     >
-      {/* Papel con efecto de sombra */}
       <Paper
         elevation={10} // Sombra más pronunciada
         sx={{
@@ -33,7 +53,6 @@ const Login = () => {
           boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)', // Sombra sutil
         }}
       >
-        {/* Título del login */}
         <Typography
           variant="h4"
           align="center"
@@ -46,7 +65,6 @@ const Login = () => {
           Iniciar Sesión
         </Typography>
 
-        {/* Formulario de login */}
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <TextField
@@ -54,6 +72,8 @@ const Login = () => {
               fullWidth
               variant="outlined"
               size="small"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               sx={{
                 borderRadius: '5px',
                 backgroundColor: '#fafafa',
@@ -76,6 +96,8 @@ const Login = () => {
               fullWidth
               variant="outlined"
               size="small"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               sx={{
                 borderRadius: '5px',
                 backgroundColor: '#fafafa',
@@ -96,6 +118,7 @@ const Login = () => {
               variant="contained"
               color="primary"
               fullWidth
+              onClick={handleLogin}
               sx={{
                 padding: '12px 0',
                 fontSize: '1rem',
@@ -110,8 +133,6 @@ const Login = () => {
               Ingresar
             </Button>
           </Grid>
-
-          {/* Enlaces para registro y recuperación de contraseña */}
         </Grid>
       </Paper>
     </Box>

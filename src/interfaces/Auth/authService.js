@@ -1,21 +1,17 @@
 // src/interfaces/Auth/authService.js
 export const login = async (username, password) => {
-    // Lógica de autenticación, por ejemplo, hacer una solicitud a la API
-    try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-      if (!response.ok) {
-        throw new Error('Error al autenticar');
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  };
-  
+  // Simulando usuarios y contraseñas
+  const users = [
+    { username: 'vendedor', password: 'vendedor123', role: 'vendedor' },
+    { username: 'bodeguero', password: 'bodeguero123', role: 'bodeguero' },
+  ];
+
+  // Buscar el usuario en el array simulado
+  const user = users.find((user) => user.username === username && user.password === password);
+
+  if (user) {
+    return { username: user.username, role: user.role };  // Retorna el rol si la autenticación es exitosa
+  } else {
+    throw new Error('Credenciales incorrectas');
+  }
+};
