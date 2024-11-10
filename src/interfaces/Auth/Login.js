@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, TextField, Button, Grid } from '@mui/material';
-import { useAuth } from './AuthContext'; // Importa el contexto de autenticación
-import { useNavigate } from 'react-router-dom'; // Usaremos React Router para la redirección
-import loginImage from '../../assets/login_image2.jpeg'; // Asegúrate de que la ruta sea correcta
+import { Box, Paper, Typography, TextField, Button, Grid, Alert } from '@mui/material';
+import { useAuth } from './AuthContext';
+import { useNavigate } from 'react-router-dom';
+import loginImage from '../../assets/login_image2.jpeg';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState(''); // Estado para manejar el mensaje de error
   const { login, isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    setErrorMessage(''); // Limpiar el mensaje de error al intentar un nuevo inicio de sesión
     try {
       await login(username, password);
       if (isAuthenticated) {
         if (userRole === 'vendedor') {
-          navigate('/vendedor'); // Redirigir a la interfaz del vendedor
+          navigate('/vendedor');
         } else if (userRole === 'bodeguero') {
-          navigate('/bodeguero'); // Redirigir a la interfaz del bodeguero
+          navigate('/bodeguero');
         }
+      } else {
+        setErrorMessage('La autenticación falló. Verifica tus credenciales.'); // Mensaje de error si no se autenticó
       }
     } catch (error) {
-      console.error('Error en el login:', error);
+      setErrorMessage('Error en el login: ' + error.message);
     }
   };
 
@@ -30,7 +34,7 @@ const Login = () => {
       sx={{
         minHeight: '100vh',
         minWidth: '100vw',
-        backgroundImage: `url(${loginImage})`, // Imagen de fondo
+        backgroundImage: `url(${loginImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -43,27 +47,25 @@ const Login = () => {
       }}
     >
       <Paper
-        elevation={10} // Sombra más pronunciada
+        elevation={10}
         sx={{
           padding: 5,
           maxWidth: 400,
           width: '90%',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)', // Fondo blanco con algo de transparencia
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
           borderRadius: 3,
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)', // Sombra sutil
+          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <Typography
-          variant="h4"
-          align="center"
-          sx={{
-            fontWeight: 'bold',
-            marginBottom: 4,
-            color: '#333', // Color del texto
-          }}
-        >
+        <Typography variant="h4" align="center" sx={{ fontWeight: 'bold', marginBottom: 4, color: '#333' }}>
           Iniciar Sesión
         </Typography>
+
+        {errorMessage && (
+          <Alert severity="error" sx={{ marginBottom: 2 }}>
+            {errorMessage}
+          </Alert>
+        )}
 
         <Grid container spacing={2}>
           <Grid item xs={12}>
