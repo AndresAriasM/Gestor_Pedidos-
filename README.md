@@ -1,6 +1,6 @@
 # Sistema de Gestión de Inventario
 
-## Enlace deirecto al proyecto:
+## Enlace directo al proyecto:
 https://invetra.vercel.app/login
 
 ## Descripción
@@ -25,22 +25,22 @@ La arquitectura del sistema sigue un enfoque por capas:
 ## Instalación
 
 1. Clona este repositorio:
-   \`\`\`bash
+   ```bash
    git clone https://github.com/tu_usuario/tu_repositorio.git
    cd tu_repositorio
-   \`\`\`
+   ```
 
 2. Instala las dependencias:
-   \`\`\`bash
+   ```bash
    npm install
-   \`\`\`
+   ```
 
 3. Configura las variables de entorno en un archivo \`.env\` siguiendo el ejemplo de \`.env.example\`.
 
 4. Inicia la aplicación en modo de desarrollo:
-   \`\`\`bash
+   ```bash
    npm run dev
-   \`\`\`
+   ```
 
 ## Uso
 
@@ -64,17 +64,17 @@ El sistema de gestión de inventario incluye vistas específicas para cada rol d
 
 1. Haz un fork del proyecto.
 2. Crea una nueva rama para tu funcionalidad:
-   \`\`\`bash
+   ```bash
    git checkout -b nueva-funcionalidad
-   \`\`\`
+   ```
 3. Realiza tus cambios y haz commit:
-   \`\`\`bash
+   ```bash
    git commit -m 'Añadida nueva funcionalidad'
-   \`\`\`
+   ```
 
 4. Envía tus cambios:
-   \`\`\`bash
+   ```bash
    git push origin nueva-funcionalidad
-   \`\`\`
+   ```
 5. Crea un Pull Request para revisión.
 
