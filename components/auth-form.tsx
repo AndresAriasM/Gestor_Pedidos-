@@ -2,40 +2,81 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/auth";
 
-export function AuthForm({ role }: { role: 'vendedor' | 'bodeguero' | 'admin' }) {
+export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [errorMessage, setErrorMessage] = useState("");
+  const [formData, setFormData] = useState<{
+    email: string;
+    contraseña: string;
+    rol: "vendedor" | "bodega" | "admin";
+  }>({
+    email: "",
+    contraseña: "",
+    rol: "vendedor",
+  });
   const router = useRouter();
-  const { login, error } = useAuth();
   const { toast } = useToast();
+  const { setUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage("");
 
     try {
-      const success = await login({
-        username: formData.username,
-        password: formData.password,
-        role,
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          contraseña: formData.contraseña,
+        }),
       });
 
-      if (success) {
+      if (response.ok) {
+        const user = await response.json();
+
+        if (user.rol !== formData.rol) {
+          setErrorMessage("Rol seleccionado incorrecto.");
+          setTimeout(() => setErrorMessage(""), 5000);
+          toast({
+            variant: "destructive",
+            title: "Error de rol",
+            description: "El rol seleccionado no coincide con el usuario.",
+          });
+        } else {
+          setUser(user);
+
+          toast({
+            title: "Inicio de sesión exitoso",
+            description: "Bienvenido al sistema",
+          });
+          router.push(`/${formData.rol}`);
+        }
+      } else {
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || "Credenciales inválidas.");
+        setTimeout(() => setErrorMessage(""), 5000);
         toast({
-          title: "Inicio de sesión exitoso",
-          description: "Bienvenido al sistema",
+          variant: "destructive",
+          title: "Error de autenticación",
+          description: errorData.message || "Credenciales inválidas.",
         });
-        router.refresh();
       }
     } catch (error) {
+      setErrorMessage("Ocurrió un error al iniciar sesión.");
+      setTimeout(() => setErrorMessage(""), 5000);
       toast({
         variant: "destructive",
         title: "Error",
@@ -46,54 +87,58 @@ export function AuthForm({ role }: { role: 'vendedor' | 'bodeguero' | 'admin' })
     }
   };
 
-  const getRoleCredentials = () => {
-    switch (role) {
-      case 'vendedor':
-        return { email: 'vendedor@demo.com', password: 'vendedor123' };
-      case 'bodeguero':
-        return { email: 'bodega@demo.com', password: 'bodega123' };
-      case 'admin':
-        return { email: 'admin@demo.com', password: 'admin123' };
-    }
-  };
-
-  const credentials = getRoleCredentials();
-
   return (
     <Card className="p-6 w-full max-w-md mx-auto">
+      {errorMessage && (
+        <Card className="mb-4 p-4 bg-destructive/10 text-destructive">
+          {errorMessage}
+        </Card>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
         <div className="space-y-2">
-          <Label htmlFor="username">Correo electrónico</Label>
+          <Label htmlFor="email">Correo electrónico</Label>
           <Input
-            id="username"
+            id="email"
             type="email"
             placeholder="correo@ejemplo.com"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            value={formData.email}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
             required
           />
-          <p className="text-xs text-muted-foreground">
-            Demo: {credentials.email}
-          </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña</Label>
+          <Label htmlFor="contraseña">Contraseña</Label>
           <Input
-            id="password"
+            id="contraseña"
             type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            value={formData.contraseña}
+            onChange={(e) =>
+              setFormData({ ...formData, contraseña: e.target.value })
+            }
             required
           />
-          <p className="text-xs text-muted-foreground">
-            Demo: {credentials.password}
-          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="rol">Rol</Label>
+          <Select
+            onValueChange={(value: "vendedor" | "bodega" | "admin") =>
+              setFormData({ ...formData, rol: value })
+            }
+            defaultValue={formData.rol}
+          >
+            <SelectTrigger id="rol">
+              <SelectValue placeholder="Selecciona un rol" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vendedor">Vendedor</SelectItem>
+              <SelectItem value="bodega">Bodega</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>

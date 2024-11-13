@@ -16,13 +16,13 @@ export function ProtectedRoute({
 
   useEffect(() => {
     if (!user) {
-      router.push("/");
-    } else if (user.role !== role) {
+      router.push("/login");
+    } else if (user.rol !== role) {
       router.push("/");
     }
   }, [user, role, router]);
 
-  if (!user || user.role !== role) {
+  if (!user || user.rol !== role) {
     return null;
   }
 

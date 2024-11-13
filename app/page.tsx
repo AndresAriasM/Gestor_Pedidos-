@@ -1,9 +1,27 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { PackageSearch, Users, Warehouse } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export default function Home() {
+  const router = useRouter();
+  const { setUser } = useAuth();
+
+  useEffect(() => {
+    const storedUser = Cookies.get("user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUser(user);
+      router.push(`/${user.rol}`);
+    }
+  }, [router, setUser]);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-muted">
       <div className="container mx-auto px-4 py-16">
@@ -24,11 +42,8 @@ export default function Home() {
               </div>
               <h2 className="text-xl font-semibold">Vendedores</h2>
               <p className="text-muted-foreground">
-                Acceso para personal de ventas
+                Personal de ventas
               </p>
-              <Link href="/vendedor" className="w-full">
-                <Button className="w-full">Ingresar como Vendedor</Button>
-              </Link>
             </div>
           </Card>
 
@@ -39,11 +54,8 @@ export default function Home() {
               </div>
               <h2 className="text-xl font-semibold">Bodega</h2>
               <p className="text-muted-foreground">
-                Acceso para personal de bodega
+                Personal de bodega
               </p>
-              <Link href="/bodega" className="w-full">
-                <Button className="w-full">Ingresar como Bodeguero</Button>
-              </Link>
             </div>
           </Card>
 
@@ -56,11 +68,14 @@ export default function Home() {
               <p className="text-muted-foreground">
                 Gestión de inventario y usuarios
               </p>
-              <Link href="/admin" className="w-full">
-                <Button className="w-full">Ingresar como Admin</Button>
-              </Link>
             </div>
           </Card>
+        </div>
+
+        <div className="flex justify-center p-10">
+          <Link href="/login">
+            <Button className="px-8 py-4 text-xl">Iniciar Sesión</Button>
+          </Link>
         </div>
       </div>
     </main>

@@ -1,88 +1,114 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { AuthForm } from "@/components/auth-form";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useRouter } from "next/navigation";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { useState } from "react";
+import axios from "axios";
 
-interface Order {
-  id: string;
-  vendedor: string;
-  items: { nombre: string; cantidad: number }[];
-  timestamp: string;
-  status: "pending" | "in-progress" | "completed";
+interface Producto {
+  _id: string;
+  nombre: string;
+  cantidad_disponible: number;
 }
 
-const initialOrders: Order[] = [
-  {
-    id: "12345",
-    vendedor: "Juan Pérez",
-    items: [
-      { nombre: "Camiseta Básica", cantidad: 3 },
-      { nombre: "Pantalón Cargo", cantidad: 2 },
-    ],
-    timestamp: "hace 5 minutos",
-    status: "pending",
-  },
-  // Add more example orders as needed
-];
+interface Pedido {
+  _id: string;
+  vendedor_id: {
+    _id: string;
+    nombre: string;
+  };
+  estado: 'pendiente' | 'en_progreso' | 'completado';
+  items: {
+    producto_id: Producto;
+    cantidad_solicitada: number;
+  }[];
+  fecha_creacion: string;
+  asignado_a: {
+    _id: string;
+    nombre: string;
+  };
+}
+
+const allowedTransitions: { [key: string]: string[] } = {
+  pendiente: ['en_progreso'],
+  en_progreso: ['completado'],
+  completado: [],
+};
 
 export default function BodegaPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [orders, setOrders] = useState(initialOrders);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
 
-  const columns = {
-    pending: {
-      title: "Pendientes",
-      items: orders.filter((order) => order.status === "pending"),
-    },
-    "in-progress": {
-      title: "En Progreso",
-      items: orders.filter((order) => order.status === "in-progress"),
-    },
-    completed: {
-      title: "Completados",
-      items: orders.filter((order) => order.status === "completed"),
-    },
+  useEffect(() => {
+    fetchPedidos();
+    const interval = setInterval(fetchPedidos, 5000);
+    return () => clearInterval(interval);
+  }, [user?._id]);
+
+  const fetchPedidos = async () => {
+    try {
+      const response = await axios.get<Pedido[]>("/api/pedidos");
+      // Filter pedidos assigned to current bodega user
+      const userPedidos = response.data.filter(
+        (p) => p.asignado_a?._id === user?._id && p.estado !== 'cancelado'
+      );
+      setPedidos(userPedidos);
+    } catch (error) {
+      console.error("Error fetching pedidos:", error);
+    }
   };
 
-  const handleDragEnd = (result: any) => {
+  const updatePedidoStatus = async (pedidoId: string, newStatus: string) => {
+    try {
+      await axios.put(`/api/pedidos/${pedidoId}`, {
+        estado: newStatus,
+      });
+      await fetchPedidos();
+    } catch (error) {
+      console.error("Error updating pedido status:", error);
+    }
+  };
+
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const { source, destination } = result;
-    const orderId = result.draggableId;
-    const newStatus = destination.droppableId as Order["status"];
+    const sourceStatus = result.source.droppableId;
+    const destinationStatus = result.destination.droppableId;
+    const pedidoId = result.draggableId;
 
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: newStatus }
-        : order
-    ));
+    // Check if the transition is allowed
+    if (!allowedTransitions[sourceStatus]?.includes(destinationStatus)) {
+      return;
+    }
+
+    updatePedidoStatus(pedidoId, destinationStatus);
   };
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-16">
-        <h1 className="text-3xl font-bold text-center mb-8">Panel de Bodega</h1>
-        <AuthForm role="bodeguero" />
-      </div>
-    );
-  }
+  const getStatusColor = (status: string) => {
+    const colors = {
+      pendiente: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      en_progreso: "bg-blue-100 text-blue-800 border-blue-200",
+      completado: "bg-green-100 text-green-800 border-green-200",
+    };
+    return colors[status as keyof typeof colors] || "";
+  };
 
   return (
-    <ProtectedRoute role="bodeguero">
+    <ProtectedRoute role="bodega">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Panel de Bodega</h1>
           <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">Bienvenido, {user.name}</span>
+            <span className="text-muted-foreground">
+              Bienvenido, {user?.nombre}
+            </span>
             <Button
               variant="outline"
               size="sm"
@@ -97,59 +123,73 @@ export default function BodegaPage() {
           </div>
         </div>
 
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.entries(columns).map(([columnId, column]) => (
-              <div key={columnId} className="bg-secondary/30 rounded-lg p-4">
-                <h2 className="text-xl font-semibold mb-4">{column.title}</h2>
-                <Droppable droppableId={columnId}>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="grid grid-cols-3 gap-4">
+            {(['pendiente', 'en_progreso', 'completado'] as const).map((estado) => (
+              <div key={estado} className="space-y-4">
+                <div className={`p-3 rounded-lg ${getStatusColor(estado)}`}>
+                  <h3 className="font-medium text-center capitalize">
+                    {estado.replace('_', ' ')}
+                  </h3>
+                </div>
+                <Droppable droppableId={estado}>
                   {(provided) => (
                     <div
-                      {...provided.droppableProps}
                       ref={provided.innerRef}
+                      {...provided.droppableProps}
                       className="space-y-4"
                     >
-                      {column.items.map((order, index) => (
-                        <Draggable
-                          key={order.id}
-                          draggableId={order.id}
-                          index={index}
-                        >
-                          {(provided) => (
-                            <Card
-                              className="p-6 space-y-4 bg-background"
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                            >
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Pedido #{order.id}</p>
-                                  <h3 className="text-lg font-semibold">Vendedor: {order.vendedor}</h3>
-                                </div>
-                                <Badge variant="secondary">
-                                  {column.title.slice(0, -1)}
-                                </Badge>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                {order.items.map((item, i) => (
-                                  <div key={i} className="flex justify-between items-center">
-                                    <span>{item.nombre}</span>
-                                    <span className="font-medium">x{item.cantidad}</span>
+                      {pedidos
+                        .filter((p) => p.estado === estado)
+                        .map((pedido, index) => (
+                          <Draggable
+                            key={pedido._id}
+                            draggableId={pedido._id}
+                            index={index}
+                          >
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                              >
+                                <Card className="p-4 space-y-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">
+                                        Pedido #{pedido._id.slice(-6)}
+                                      </p>
+                                      <p className="font-medium">
+                                        Vendedor: {pedido.vendedor_id.nombre}
+                                      </p>
+                                    </div>
+                                    <Badge variant="secondary">
+                                      {pedido.estado.replace('_', ' ')}
+                                    </Badge>
                                   </div>
-                                ))}
+                                  <div className="space-y-2">
+                                    {pedido.items.map((item) => (
+                                      <div
+                                        key={item.producto_id._id}
+                                        className="flex justify-between items-center text-sm"
+                                      >
+                                        <span>{item.producto_id.nombre}</span>
+                                        <span className="font-medium">
+                                          x{item.cantidad_solicitada}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="pt-2 border-t">
+                                    <p className="text-sm text-muted-foreground">
+                                      {new Date(pedido.fecha_creacion).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </Card>
                               </div>
-
-                              <div className="pt-4 border-t">
-                                <p className="text-sm text-muted-foreground">
-                                  Solicitado {order.timestamp}
-                                </p>
-                              </div>
-                            </Card>
-                          )}
-                        </Draggable>
-                      ))}
+                            )}
+                          </Draggable>
+                        ))}
                       {provided.placeholder}
                     </div>
                   )}
